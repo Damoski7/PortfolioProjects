@@ -1,0 +1,75 @@
+# REMEBER TO ADAPT YOUR FILE PATH ACCORDINGLY
+# AN AUTOMATIC FILE SORTER 
+This file sorter would sort various types of files (i.e txt, csv, jpg files) into various folders depending on their file type without having to drag and drop, or copy and paste. 
+
+# Ensure to adapt your file directory accordingly, mine is quite long 
+# We'll be working with csv, txt, jped, ipynb and mp4 files 
+# 'os' stands for operating system, while shutil stands for "shell utilities." (It provides a high-level interface for various file and directory 
+# ...operations, making it easier to manipulate and work with files, directories, and their contents.)
+import os, shutil 
+
+# LET'S HAVE OUR FILE PATH CLOSE TO US:
+# The 'r' allows turns the statement into a raw text that can be read. Without the 'r' the backslashes would be read and would give an error.
+# We also need to use forward slashes 
+path = r"C:/Users/user/Desktop/PERSONAL DEVELOPMENT/Career Skill-Up/Data Analytics/Portfolio/Alex The Analyst Project/pYTHON/"
+
+# THERE ARE ABSOLUTES WITH A CODE LIKE THIS 
+# - We ought to know the file path 
+# - We ought to create a folder for each file type within that file path 
+# - We ought to place each file type into their correct folder. 
+# Let's work with this 
+
+# NOW LET'S see ALL OUR FILES WITHIN THAT PATH  
+file_name = os.listdir(path)
+
+# OR WE COULD PUT THEM ALL IN A LIST AND LOOK THROUGH IT, WHICH IS VISUALLY EASIER 
+# Then we'll create our folders as well 
+folder_names = ['csv files', 'image files', 'text files',  'ipynb files', 'mp4 files']
+for loop in range(0,5):
+    if not os.path.exists(path + folder_names[loop]):
+        print(path + folder_names[loop])
+        os.makedirs(path + folder_names[loop]) 
+
+# WE'VE CREATED OUR 5 FOLDERS, NOW WE NEED TO WRITE A SCRIPT THAT'LL READ IN ALL THE FILES, CHECK WHAT TYPE OF FILES THEY ARE AND THEN PLACE THEM 
+# ... INTO THE RIGHT FOLDERS 
+# WE'LL HAVE TO LOOK THROUGH THE FILE PATH AND THEN THE FOLDERS WITHIN THAT FILE PATH, THEN SORT EACH FILE INTO THEIR RESPECTIVE FOLDERS
+for file in file_name:
+    if ".csv" in file and not os.path.exists(path + "csv files/" + file):
+        shutil.move(path + file, path + "csv files/" + file)
+    elif ".jpeg" in file and not os.path.exists(path + "image files/" + file):
+        shutil.move(path + file, path + "image files/" + file)
+    elif ".png" in file and not os.path.exists(path + "image files/" + file):
+        shutil.move(path + file, path + "image files/" + file)
+    elif ".txt" in file and not os.path.exists(path + "text files/" + file):
+        shutil.move(path + file, path + "text files/" + file)
+    elif ".ipynb" in file and not os.path.exists(path + "ipynb files/" + file):
+        shutil.move(path + file, path + "ipynb files/" + file)
+    elif ".mp4" in file and not os.path.exists(path + "mp4 files/" + file):
+        shutil.move(path + file, path + "mp4 files/" + file)
+    else:
+        print("There are files in this path that were not moved!")
+
+
+# PUTTING THE ENTIRE PROCESS INTO A SINGLE SCRIPT OF CODE, WE HAVE:
+
+folder_names = ['csv files', 'image files', 'text files',  'ipynb files', 'mp4 files']
+for loop in range(0,5):
+    if not os.path.exists(path + folder_names[loop]):
+        print(path + folder_names[loop])
+        os.makedirs(path + folder_names[loop])
+        
+for file in file_name:
+    if ".csv" in file and not os.path.exists(path + "csv files/" + file):
+        shutil.move(path + file, path + "csv files/" + file)
+    elif ".jpeg" in file and not os.path.exists(path + "image files/" + file):
+        shutil.move(path + file, path + "image files/" + file)
+    elif ".png" in file and not os.path.exists(path + "image files/" + file):
+        shutil.move(path + file, path + "image files/" + file)
+    elif ".txt" in file and not os.path.exists(path + "text files/" + file):
+        shutil.move(path + file, path + "text files/" + file)
+    elif ".ipynb" in file and not os.path.exists(path + "ipynb files/" + file):
+        shutil.move(path + file, path + "ipynb files/" + file)
+    elif ".mp4" in file and not os.path.exists(path + "mp4 files/" + file):
+        shutil.move(path + file, path + "mp4 files/" + file)
+    else:
+        print("There are files in this path that were not moved!")
