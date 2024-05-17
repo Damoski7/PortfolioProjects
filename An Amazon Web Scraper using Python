@@ -1,0 +1,215 @@
+# Amazon Web Scraping Using Python
+HERE WE'LL BE SCRAPING DATA FROM AMAZON USING PYTHON:
+- We'll be learning how to scrape data off the page containing your item.
+
+# Import libraries 
+# The smtplib library is for sending emails 
+from bs4 import BeautifulSoup 
+import requests 
+import smtplib
+import time 
+import datetime 
+
+URL = 'https://www.amazon.com/Horizon-Forbidden-West-Complete-PlayStation-5/dp/B0CK4VWNYL/ref=sr_1_1?crid=RCH1P4Z4E49R&dib=eyJ2IjoiMSJ9.o5xlqepOMm6Ou5t34d2WGHLi7D5qGRHB7aEvuPZcljNGSKeJtIfR4QPUnAwGrjiLSnYVr4mj1xV714yi91Qg6f6MhQi-k02dHskMGfA-W1qr65UfQspYER0zFjhj11Z8v5Uwofcbak8wf7r1470GKFVdkUF6Le3hlOPReqa14R1r6BqTOVMuXnNPVLV06R37Fl7ZGLnxrDPC2cg6A7sxU6uC-5CaPgy0DwHpTRAO1HY.ceY2hw7-cz52WTKnuOe10CteZ46q8hprIBBrNL7Cvc0&dib_tag=se&keywords=Horizon+Forbidden+West+PS5&qid=1715949407&s=audible&sprefix=horizon+forbidden+west+ps%2Caudible%2C402&sr=1-1'
+# Let's also get our headers. What we're getting exactly is something called a user agent. 
+# We can get our user agent from this link https://httpbin.org/get 
+# This is our user agent:  
+headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", "Accept-Encoding":"gzip, deflate", "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", "DNT":"1","Connection":"close", "Upgrade-Insecure-Requests":"1"}
+
+# Let's now connect our computer to the URL 
+page = requests.get(URL, headers=headers)
+
+# NOW LET'S START BRINGING IN THE DATA:
+soup1 = BeautifulSoup(page.content, "html.parser")
+print(soup1)
+
+# let's format our DOCTYPE html to look more presentable 
+soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+print(soup2)
+
+# LET'S START PULLING THE SIMPLE THINGS FROM OUR SITE 
+# Let's pull our title first, and we'll be using our span id. We determined this after inspecting the title on our site.
+# NOTE TO USE THE strip function along side the get.text function in order to returned the desired result 
+title = soup2.find(id='productTitle').get_text().strip()
+print(title)
+
+# Let's also pull in the price. BUT NOTE. On the site we see our price stored under class as class="a-offscreen"
+# ... BUT We have to put an underscore after the class because class is a reserved word in python (i.e it has a special meaning)
+#... So we can't use it as a parameter name. To avoid this conflict, BeautifulSoup uses class_ (with an underscore) to allow 
+#... developers to search for HTML elements by their class attribute.
+# LET'S TAKE A LOOK AT HOW IT'S DONE:
+price = soup2.find(class_="a-offscreen").get_text()
+print(price)
+
+# NOW LET'S PULL OUR TITLE AND PRICE TOGETHER
+title = soup2.find(id='productTitle').get_text().strip()
+price = soup2.find(class_="a-offscreen").get_text()
+print(title)
+print(price)
+
+# NOW HOW'RE WE GOING TO USE THIS INFORMATION FIRST OFF LET'S CLEAN IT A LITTLE BIT  
+
+# LET'S CLEAN UP OUR PRICE AND TTILE BY STRIPPING THE EXCESS SPACES OFF BOTH SIDES 
+title = title.strip() 
+price = price.strip()
+print(title)
+print(price)
+
+# NOW LET'S CREATE OUR CSV FILE TO ENTER THIS DATA INTO IT 
+# We're going to create a process to automate pulling the data and creating the dataset.
+# We're going to create the csv, insert the data into the csv, ad creata a process to append more data into that csv. 
+
+# Let's create a time-stamp for when we collected this data 
+import datetime
+today = datetime.date.today()
+print(today)
+
+# WE NEED TO CREATE OUR HEADER AND THEN INSERT OUR DATA 
+import csv 
+header = ['Title', 'Price', 'Date']
+data = [title, price, today]
+
+# WE NEED TO KNOW WHAT DATATYPE OUR DATA IS STORED IN. WE NEED A LIST 
+type(data)
+
+# NOW LET'S CREATE A CSV 
+# On line 1 and 2, we're creating the csv, on line 3, we're inserting the header, and on line 4, we're inserting the data.
+# 'W' means write
+# newline ensures that when we insert the data, it doesn't have space between each csv
+with open('AmazonWebScraperDataset.csv', 'w', newline='', encoding='UTF8') as f:
+    writer = csv.writer(f)
+    writer.writerow(header)
+    writer.writerow(data)
+
+# Our csv file would then be created and stored within this file path C:\Users\user
+
+# NOW LET'S PUT PUR DATA INTO A PANDAS DATAFRAME SO WE DON'T HAVE TO BE VIEWING OUR CSV FILE EVERYTIME 
+import pandas as pd 
+df = pd.read_csv(r"C:\Users\user\AmazonWebScraperDataset.csv")
+print(df)
+
+# ONE THING YOU'D WANT TO NOTE WHEN SCRAPING DATA FROM A SITE OVER TIME IS A PRICE-CHECKER OVER TIME, AND THEN APPEND THE DATA
+#... TO IT. We won't need our header anymore.
+# 'a+' is used to append the data, which is to add data to the next row 
+with open('AmazonWebScraperDataset.csv', 'a+', newline='', encoding='UTF8') as f:
+    writer = csv.writer(f)
+    writer.writerow(data)
+
+# ASSUMING THE DATA UPDATES DAILY, WE DON'T WANT TO RUN THE CODE ABOVE EACH DAY TO APPEND OUR DATA, WE NEED A WAY TO AUTOMATE 
+#... OUR APPEND FUNCTION. LET'S PUT OUR ENTIRE SCRIPT INTO A LIST WHICH WE WOULD PUT ON A TIMER. 
+import requests
+from bs4 import BeautifulSoup
+import datetime
+import csv
+
+def check_price():
+    URL = 'https://www.amazon.com/Horizon-Forbidden-West-Complete-PlayStation-5/dp/B0CK4VWNYL/ref=sr_1_1?crid=RCH1P4Z4E49R&dib=eyJ2IjoiMSJ9.o5xlqepOMm6Ou5t34d2WGHLi7D5qGRHB7aEvuPZcljNGSKeJtIfR4QPUnAwGrjiLSnYVr4mj1xV714yi91Qg6f6MhQi-k02dHskMGfA-W1qr65UfQspYER0zFjhj11Z8v5Uwofcbak8wf7r1470GKFVdkUF6Le3hlOPReqa14R1r6BqTOVMuXnNPVLV06R37Fl7ZGLnxrDPC2cg6A7sxU6uC-5CaPgy0DwHpTRAO1HY.ceY2hw7-cz52WTKnuOe10CteZ46q8hprIBBrNL7Cvc0&dib_tag=se&keywords=Horizon+Forbidden+West+PS5&qid=1715949407&s=audible&sprefix=horizon+forbidden+west+ps%2Caudible%2C402&sr=1-1'
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", 
+        "Accept-Encoding":"gzip, deflate", 
+        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 
+        "DNT":"1",
+        "Connection":"close", 
+        "Upgrade-Insecure-Requests":"1"
+    }
+    
+    page = requests.get(URL, headers=headers)
+    
+    soup1 = BeautifulSoup(page.content, "html.parser")
+    
+    soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+    
+    title = soup2.find(id='productTitle').get_text().strip()
+    price = soup2.find(class_="a-offscreen").get_text().strip()
+
+    print(title)
+    print(price)
+    
+    today = datetime.date.today()
+
+    header = ['Title', 'Price', 'Date'] 
+    data = [title, price, today]
+
+    with open('AmazonWebScraperDataset.csv', 'a+', newline='', encoding='UTF8') as f:
+        writer = csv.writer(f)
+        writer.writerow(header) # This writes the header
+        writer.writerow(data) # This writes the data
+
+# NOW LET'S PUT OUR LIST ON A TIMER
+# WE'VE SET OUR TIMER TO RUN THROUGH THIS SCRIPT IN EVERY 86400 SECONDS (that's 24hrs)
+while(True):
+    check_price()
+    time.sleep(86400)
+
+# NOW, WE'LL RUN THIS CODE EACH TIME WE WANT TO RETURN OUR OUTPUT AFTER THE ENTIRE SCRIPT HAS BEEN CYCLED THROUGH
+# YOU CAN THIS CODE IN THE BACKGROUND OF YOUR COMPUTER FOR WEEKS AS LONG AS YOUR COMPUTER STAYS ON.
+import pandas as pd 
+df = pd.read_csv(r"C:\Users\user\AmazonWebScraperDataset.csv")
+print(df)
+
+# ANOTHER INTERESTING THING WE CAN DO IS TO LOOK FOR A PRICE-DROP OF OUR GAME AND THEN SEND US AN EMAIL INDICATING SO, JUST IN CASE OF BLACK FRIDAY!!
+
+# ASSUMING THE DATA UPDATES DAILY, WE DON'T WANT TO RUN THE CODE ABOVE EACH DAY TO APPEND OUR DATA, WE NEED A WAY TO AUTOMATE 
+#... OUR APPEND FUNCTION. LET'S PUT OUR ENTIRE SCRIPT INTO A LIST WHICH WE WOULD PUT ON A TIMER. 
+import requests
+from bs4 import BeautifulSoup
+import datetime
+import csv
+
+def check_price():
+    URL = 'https://www.amazon.com/Horizon-Forbidden-West-Complete-PlayStation-5/dp/B0CK4VWNYL/ref=sr_1_1?crid=RCH1P4Z4E49R&dib=eyJ2IjoiMSJ9.o5xlqepOMm6Ou5t34d2WGHLi7D5qGRHB7aEvuPZcljNGSKeJtIfR4QPUnAwGrjiLSnYVr4mj1xV714yi91Qg6f6MhQi-k02dHskMGfA-W1qr65UfQspYER0zFjhj11Z8v5Uwofcbak8wf7r1470GKFVdkUF6Le3hlOPReqa14R1r6BqTOVMuXnNPVLV06R37Fl7ZGLnxrDPC2cg6A7sxU6uC-5CaPgy0DwHpTRAO1HY.ceY2hw7-cz52WTKnuOe10CteZ46q8hprIBBrNL7Cvc0&dib_tag=se&keywords=Horizon+Forbidden+West+PS5&qid=1715949407&s=audible&sprefix=horizon+forbidden+west+ps%2Caudible%2C402&sr=1-1'
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36", 
+        "Accept-Encoding":"gzip, deflate", 
+        "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8", 
+        "DNT":"1",
+        "Connection":"close", 
+        "Upgrade-Insecure-Requests":"1"
+    }
+    
+    page = requests.get(URL, headers=headers)
+    
+    soup1 = BeautifulSoup(page.content, "html.parser")
+    
+    soup2 = BeautifulSoup(soup1.prettify(), "html.parser")
+    
+    title = soup2.find(id='productTitle').get_text().strip()
+    price = soup2.find(class_="a-offscreen").get_text().strip()
+
+    print(title)
+    print(price)
+    
+    today = datetime.date.today()
+
+    header = ['Title', 'Price', 'Date'] 
+    data = [title, price, today]
+
+    with open('AmazonWebScraperDataset.csv', 'a+', newline='', encoding='UTF8') as f:
+        writer = csv.writer(f)
+        writer.writerow(header)
+        writer.writerow(data)
+
+    
+    if(price<$40):
+        send_mail()
+
+def send_mail():
+    server = smtplib.SMTP_SSL('smtp.gmail.com',465)
+    server.ehlo()
+    #server.starttls()
+    server.ehlo()
+    server.login('babatundeoyindamola57@gmail.com','xxxxxxxxx')
+    
+    subject = "The PS5 Game you want is below $40! Now is your chance to buy!"
+    body = "Damola, This is the moment we have been waiting for. Now is your chance to pick up the game of your dreams. Don't mess it up! Link here: 'https://www.amazon.com/Horizon-Forbidden-West-Complete-PlayStation-5/dp/B0CK4VWNYL/ref=sr_1_1?crid=RCH1P4Z4E49R&dib=eyJ2IjoiMSJ9.o5xlqepOMm6Ou5t34d2WGHLi7D5qGRHB7aEvuPZcljNGSKeJtIfR4QPUnAwGrjiLSnYVr4mj1xV714yi91Qg6f6MhQi-k02dHskMGfA-W1qr65UfQspYER0zFjhj11Z8v5Uwofcbak8wf7r1470GKFVdkUF6Le3hlOPReqa14R1r6BqTOVMuXnNPVLV06R37Fl7ZGLnxrDPC2cg6A7sxU6uC-5CaPgy0DwHpTRAO1HY.ceY2hw7-cz52WTKnuOe10CteZ46q8hprIBBrNL7Cvc0&dib_tag=se&keywords=Horizon+Forbidden+West+PS5&qid=1715949407&s=audible&sprefix=horizon+forbidden+west+ps%2Caudible%2C402&sr=1-1'"
+   
+    msg = f"Subject: {subject}\n\n{body}"
+    
+    server.sendmail(
+        'babatundeoyindamola57@gmail.com',
+        msg
+     
+    )
+
