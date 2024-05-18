@@ -1,0 +1,171 @@
+# An Application Program Interface (API)
+- An API is a set of rules and protocols that allows different software applications to communicate with each other. It acts as a bridge enabling these applications to exchange data, features, and functionality
+- An API serves as a middle-man between two or more apps that want to talk to each other. An API typically has a client(one who submits a request) and a server(which generates a response to the clients request).  "
+
+# WE'LL BE PULLING OUR DATA FROM OUR API WEBSITE 
+from requests import Request, Session
+from requests.exceptions import ConnectionError, Timeout, TooManyRedirects
+import json
+
+url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+parameters = {
+  'start':'1',
+  'limit':'5000',
+  'convert':'USD'
+}
+headers = {
+  'Accepts': 'application/json',
+  'X-CMC_PRO_API_KEY': '4c9e9662-c188-451a-8ab6-0a0e2817702b',
+}
+
+session = Session()
+session.headers.update(headers)
+
+try:
+  response = session.get(url, params=parameters)
+  data = json.loads(response.text)
+  print(data)
+except (ConnectionError, Timeout, TooManyRedirects) as e:
+  print(e)
+
+
+# The data above looks very untidy, but if you can read through it you'd see we have 'timestamp', 'total_count', 
+#... 'credit_count' etc 
+# NOW THAT WE HAVE OUR DATA, LET'S NORMALIZE/CLEAN IT SO IT LOOKS BETTER 
+
+# The data is in a json format 
+type(data)
+
+import pandas as pd 
+pd.set_option('display.max_columns', None)
+
+
+# This is the actual data that we want, and these are the actual columns storing them 
+pd.json_normalize(data['status'])
+
+
+# NOW LET'S MAKE THE DATA MORE PRESENTABLE 
+pd.json_normalize(data['data'])
+
+
+# NOW WE WANT TO AUTOMATE THE DATA COLLECTION PROCESS 
+
+
+# LET'S ADD A TIME-STAMP COLUMN TO THE END OF OUR DATA, SO WE CAN KNOW WHAT TIME OF THE DAY OUR DATA IS APPENDED OR WORKED WITH
+#... ON OUR END, BECUASE YOU WOULD NOTICE A "last_updated" updated column which gives a timestamp of when data from each row was
+#... updated from the server 
+df = pd.json_normalize(data['data'])
+df['timestamp'] = pd.to_datetime('now')
+df
+
+
+# WE'RE NOW GOING TO CREATE A FUNCTION USING OUR ORIGINAL SCRIPT TO AUTOMATE A PROCESS THAT'LL APPEND THE DATA TO OUR DATAFRAME
+- We're going to append our new dataframe unto our original one
+- We're also going to take our data from our dataframe and append it into a csv.
+
+def api_runner():
+    global df
+    url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+    # Original Sandbox Environment: 'sandbox-api.coinmarketcap.com/v1/cryptocurrency/listings/latest'
+    parameters = {
+        'start': '1',
+        'limit': '5000',
+        'convert': 'USD'
+    }
+    headers = {
+        'Accepts': 'application/json',
+        'X-CMC_PRO_API_KEY': '4c9e9662-c188-451a-8ab6-0a0e2817702b',
+    }
+
+    session = Session()
+    session.headers.update(headers)
+
+    try:
+        response = session.get(url, params=parameters)
+        data = json.loads(response.text)
+        print(data)
+    except (ConnectionError, Timeout, TooManyRedirects) as e:
+        print(e)
+
+    df2 = pd.json_normalize(data['data'])
+    df2['timestamp'] = pd.to_datetime('now')
+    df = df.append(df2) 
+    
+    if not os.path.isfile(r"C:\Users\user\Desktop\Pandas Tutorial 1\CryptoAPI.csv"):
+        df.to_csv(r"C:\Users\user\Desktop\Pandas Tutorial 1\CryptoAPI.csv", header='column_names')
+    else:
+        df.to_csv(r"C:\Users\user\Desktop\Pandas Tutorial 1\CryptoAPI.csv", mode='a', header=False)
+
+
+# NOW LET'S CREATE A SCRIPT TO AUTOMATE AND RUN THE CODE ABOVE
+import os 
+from time import time 
+from time import sleep 
+
+for i in range(333):
+    api_runner()
+    print('API Runner completed successfully')
+    sleep(60) #The script will wait for 1 minute before it runs again. 
+exit()
+
+
+# NOW LET'S CALL IT IN 
+df3 = pd.read_csv(r"C:\Users\user\Desktop\Pandas Tutorial 1\CryptoAPI.csv")
+df3
+
+# MOVING ON, LET'S GET RID OF OUR circulating_supply column because it looks untidy 
+pd.set_option('display.float_format', lambda x: '%5f' %x)
+
+# MOVING ON, WE WANT TO TAKE A LOOK AT THE COIN TRENDS (% CHANGES OF THE PRICE OF EACH CYPTOCURRENCY)
+#... PER TIME(1hr, 90days etc), SO WE'LL USE A GROUPBY AND WE'LL FIND THE AVERAGE
+df3 = df.groupby('name', sort=False)[['quote.USD.percent_change_1h','quote.USD.percent_change_24h','quote.USD.percent_change_7d','quote.USD.percent_change_30d','quote.USD.percent_change_60d','quote.USD.percent_change_90d']].mean()
+df3
+
+# Visualising our data this way won't work because our %changes are columns, WE NEED to make them rows
+# We're going to USE THE STACK FUNCTION TO DO THIS 
+df4 = df3.stack()
+df4
+
+# The stack function would change the type of our data.
+type(df3)  #From a dataframe
+
+type(df4) # To a Series'
+
+# BUT WE NEED OUR DATAFRAME IN A DATAFRAME TO BE ABLE TO USE IT WELL, SO LET'S CONVERT IT BACK:
+df5 = df4.to_frame(name='values')
+df5
+
+# NOW LET'S SET AN INDEX 
+df5.count()
+
+pd.Index(range(29952))
+df6 = df5.reset_index()
+df6
+
+# Let's rename our column to remove the 'level_1'
+df7 = df6.rename(columns={'level_1': 'percent_change'})
+df7 
+
+
+# LET'S SEE HOW WE CAN USE THIS DATA TO VISUALIZE THE CHANGES PER TIME 
+
+import seaborn as sns 
+import matplotlib.pyplot as plt
+
+sns.catplot(x='percent_change', y='values', hue='name', data=df7, kind='point')
+plt.show()
+
+
+# The column names we get above are kind of hard to interpret so let's make them more visible
+# What we'll do is to change the data within the 'percent_change' column to make it shorter and easier
+#... to represent on our plot 
+df7['percent_change'] = df7['percent_change'].replace(['quote.USD.percent_change_1h','quote.USD.percent_change_24h','quote.USD.percent_change_7d','quote.USD.percent_change_30d','quote.USD.percent_change_60d','quote.USD.percent_change_90d'],['1h','24h','7d','30d,'60d','90d'])
+df7
+
+# Let's pull specific columns of only bitcoin over a particular period of time:
+df10 = df[['name','quote.USD.price','timestamp']]
+df10.query("'name' == 'Bitcoin'")
+df10
+
+sns.set_theme(style="darkgrid")
+sns.lineplot(x='timestamp', y='quote.USD.price', data = df10)
