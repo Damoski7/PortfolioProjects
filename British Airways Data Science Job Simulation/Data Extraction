@@ -1,0 +1,64 @@
+## Data Collection
+In this phase we will collect the customer ratings data from the airline quality website called [Skytrax](https://www.airlinequality.com/airline-reviews/british-airways). We will collect data about airline ratings, seat ratings and lounge experience ratings from this website. 
+
+#imports
+import pandas as pd
+import numpy as np
+from bs4 import BeautifulSoup
+import requests 
+
+#create an empty list to collect all reviews
+reviews  = []
+
+#create an empty list to collect rating stars
+stars = []
+
+#create an empty list to collect date
+date = []
+
+#create an empty list to collect country the reviewer is from
+country = []
+
+
+for i in range(1, 36):
+    page = requests.get(f"https://www.airlinequality.com/airline-reviews/british-airways/page/{i}/?sortby=post_date%3ADesc&pagesize=100")
+    
+    soup = BeautifulSoup(page.content, "html5")
+    
+    for item in soup.find_all("div", class_="text_content"):
+        reviews.append(item.text)
+    
+    for item in soup.find_all("div", class_ = "rating-10"):
+        try:
+            stars.append(item.span.text)
+        except:
+            print(f"Error on page {i}")
+            stars.append("None")
+            
+    #date
+    for item in soup.find_all("time"):
+        date.append(item.text)
+        
+    #country
+    for item in soup.find_all("h3"):
+        country.append(item.span.next_sibling.text.strip(" ()"))
+
+
+#check the length of total reviews extracted
+len(reviews)
+
+len(country)
+
+#check the length 
+stars = stars[:3418]
+
+#create  a dataframe from these collected lists of data
+df = pd.DataFrame({"reviews":reviews,"stars": stars, "date":date, "country": country})
+df.head()
+df.shape
+
+### Now let's export the data into a csv format
+import os
+cwd = os.getcwd()
+df.to_csv(cwd+ "/BA_reviews.csv")
+
