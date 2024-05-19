@@ -1,0 +1,146 @@
+# Task 1
+
+---
+
+## Web scraping and analysis
+
+This Jupyter notebook includes some code to get you started with web scraping. We will use a package called `BeautifulSoup` to collect the data from the web. Once you've collected your data and saved it into a local `.csv` file you should start with your analysis.
+
+### Scraping data from Skytrax
+
+If you visit [https://www.airlinequality.com] you can see that there is a lot of data there. For this task, we are only interested in reviews related to British Airways and the Airline itself.
+If you navigate to this link: [https://www.airlinequality.com/airline-reviews/british-airways] you will see this data. Now, we can use `Python` and `BeautifulSoup` to collect all the links to the reviews and then to collect the text data on each of the individual review links.
+
+import requests
+from bs4 import BeautifulSoup
+import pandas as pd
+
+base_url = "https://www.airlinequality.com/airline-reviews/british-airways"
+pages = 10
+page_size = 100
+
+reviews = []
+
+# for i in range(1, pages + 1):
+for i in range(1, pages + 1):
+
+    print(f"Scraping page {i}")
+
+    # Create URL to collect links from paginated data
+    url = f"{base_url}/page/{i}/?sortby=post_date%3ADesc&pagesize={page_size}"
+
+    # Collect HTML data from this page
+    response = requests.get(url)
+
+    # Parse content
+    content = response.content
+    parsed_content = BeautifulSoup(content, 'html.parser')
+    for para in parsed_content.find_all("div", {"class": "text_content"}):
+        reviews.append(para.get_text())
+    
+    print(f"   ---> {len(reviews)} total reviews")
+
+df = pd.DataFrame()
+df["reviews"] = reviews
+df.head()
+
+df.to_csv("data/BA_reviews.csv")
+
+
+
+
+## Data Cleaning
+Having retrieved data from the website, we find it's not yet in a state suitable for analysis. The reviews section requires cleansing of punctuation, spelling errors, and miscellaneous characters.
+
+#imports
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import os
+
+#regex
+import re
+
+
+#create a dataframe from csv file
+
+cwd = os.getcwd()
+
+df = pd.read_csv(cwd+"/BA_reviews.csv", index_col=0)
+
+
+# Let's now display the first few rows 
+df.head()
+
+# We will also create a column which mentions if the user is verified or not. 
+df['verified'] = df.reviews.str.contains("Trip Verified")
+df['verified']
+
+
+### Cleaning Reviews
+We will extract the column of reviews into a separate dataframe and clean it for semantic analysis
+
+#for lemmatization of words we will use nltk library
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+lemma = WordNetLemmatizer()
+
+
+reviews_data = df.reviews.str.strip("✅ Trip Verified |")
+
+#create an empty list to collect cleaned data corpus
+corpus =[]
+
+#loop through each review, remove punctuations, small case it, join it and add it to corpus
+for rev in reviews_data:
+    rev = re.sub('[^a-zA-Z]',' ', rev)
+    rev = rev.lower()
+    rev = rev.split()
+    rev = [lemma.lemmatize(word) for word in rev if word not in set(stopwords.words("english"))]
+    rev = " ".join(rev)
+    corpus.append(rev)
+
+
+# add the corpus to the original dataframe
+df['corpus'] = corpus
+df.head()
+
+### Let's clean and format the date
+df.dtypes
+
+# convert the date to datetime format
+df.date = pd.to_datetime(df.date)
+df.date.head()
+
+
+### Cleaning ratings with stars
+#check for unique values
+df.stars.unique()
+
+# remove the \t and \n from the ratings
+df.stars = df.stars.str.strip("\n\t\t\t\t\t\t\t\t\t\t\t\t\t")
+df.stars.value_counts()
+
+# There are 5 rows having values "None" in the ratings. We will drop all these 5 rows. 
+# drop the rows where the value of ratings is None
+df.drop(df[df.stars == "None"].index, axis=0, inplace=True)
+
+#check the unique values again
+df.stars.unique()
+
+## Check for null Values
+df.isnull().value_counts()
+df.country.isnull().value_counts()
+
+# We have two missing values for country. For this we can just remove those two reviews (rows) from the dataframe. 
+# drop the rows using index where the country value is null
+df.drop(df[df.country.isnull() == True].index, axis=0, inplace=True)
+df.shape
+
+#resetting the index
+df.reset_index(drop=True)
+
+# Now our data is all cleaned and ready for data visualization and data analysis.
+df.to_csv(cwd + "/cleaned-BA-reviews.csv")
+
+
