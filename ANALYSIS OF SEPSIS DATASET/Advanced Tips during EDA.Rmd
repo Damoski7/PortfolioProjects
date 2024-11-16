@@ -1,0 +1,4 @@
+# Converting String Variables to a factor all at the same time instead of one varaible at a time. We can do this but we'll need 3 packages: DataExplorer, tidyverse and dlookr.
+# From our dataset we'll be transforming the 3 columns containing characters("treat", "race" adn "fate") to factors all at the same time. 
+# We'll be using the mutate function (which is for changing/adding a new variable to a dataset.)
+# We can use the dumify function in the DataExplorer package to create a regression. This function will look at every varaible in 
